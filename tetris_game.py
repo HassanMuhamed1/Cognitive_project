@@ -164,24 +164,52 @@ PIECES = {'S': S_SHAPE_TEMPLATE,
 # Define if the game is manual or not
 MANUAL_GAME = False
 
+
+def menu_screen():
+    global MANUAL_GAME
+    pygame.init()
+    screen = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT))
+    font = pygame.font.Font('freesansbold.ttf', 36)
+    clock = pygame.time.Clock()
+    while True:
+        screen.fill(BGCOLOR)
+        title = font.render("Tetris Menu", True, WHITE)
+        ai_text = font.render("Press A for AI Play", True, LIGHTBLUE)
+        manual_text = font.render("Press M for Manual Play", True, LIGHTGREEN)
+        screen.blit(title, (WINDOWWIDTH//2 - title.get_width()//2, 200))
+        screen.blit(ai_text, (WINDOWWIDTH//2 - ai_text.get_width()//2, 300))
+        screen.blit(manual_text, (WINDOWWIDTH//2 - manual_text.get_width()//2, 350))
+        pygame.display.update()
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                terminate()
+            if event.type == KEYDOWN:
+                if event.key == pygame.K_a:
+                    MANUAL_GAME = False
+                    return
+                elif event.key == pygame.K_m:
+                    MANUAL_GAME = True
+                    return
+        clock.tick(30)
+
 ##############################################################################
 # MAIN GAME
 ##############################################################################
 def main():
     global FPSCLOCK, DISPLAYSURF, BASICFONT, BIGFONT
+    menu_screen()  # Show menu before starting
     pygame.init()
-
     FPSCLOCK    = pygame.time.Clock()
     DISPLAYSURF = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT))
     BASICFONT   = pygame.font.Font('freesansbold.ttf', 18)
     BIGFONT     = pygame.font.Font('freesansbold.ttf', 100)
     pygame.display.set_caption('Tetris AI')
-
-    if (MANUAL_GAME):
+    if MANUAL_GAME:
         run_game()
     else:
         best_chrom = train_genetic_algorithm()
         run_ai_game(best_chrom)
+
 
 def run_ai_game(best_chromosome):
     board = get_blank_board()
@@ -196,12 +224,12 @@ def run_ai_game(best_chromosome):
     pygame.display.set_caption('Tetris AI Player')
 
     while True:
-        if falling_piece is None:
+        if falling_piece == None:
             falling_piece = next_piece
             next_piece = get_new_piece()
             score += 1
             if not is_valid_position(board, falling_piece):
-                break
+                return
 
         check_quit()
 
@@ -234,6 +262,15 @@ def run_ai_game(best_chromosome):
         while is_valid_position(board, falling_piece, adj_Y=1):
             falling_piece['y'] += 1
 
+            # Draw the screen after each step
+            DISPLAYSURF.fill(BGCOLOR)
+            draw_board(board)
+            draw_status(score, level)
+            draw_next_piece(next_piece)
+            draw_piece(falling_piece)
+            pygame.display.update()
+            pygame.time.wait(30)  # Adjust the delay (ms) for desired speed
+
         add_to_board(board, falling_piece)
         lines_cleared = remove_complete_lines(board)
 
@@ -257,8 +294,9 @@ def run_ai_game(best_chromosome):
         pygame.display.update()
         FPSCLOCK.tick(FPS)
 
-        # Show Game Over screen
-        show_text_screen("Game Over")
+        if falling_piece != None:
+            draw_piece(falling_piece)
+
 
 def run_game():
     # Setup variables
@@ -825,7 +863,9 @@ def calc_sides_in_contact(board, piece):
                     #(nao pode haver pecas em cima)
 
     return  piece_sides, floor_sides, wall_sides
+
 ##############################################################
+
 def rate_move(board, piece, chromosomes):
     while is_valid_position(board, piece, adj_Y=1):
         piece['y'] += 1
@@ -860,21 +900,26 @@ def count_holes(board):
                 holes += 1
     return holes
 
+
 def calculate_bumpiness(board):
     heights = [column_height(board, x) for x in range(BOARDWIDTH)]
     return sum(abs(heights[i] - heights[i+1]) for i in range(len(heights) - 1))
 
+
 def init_population(size, num_chromosomes):
     return [[random.uniform(-5, 5) for _ in range(num_chromosomes)] for _ in range(size)]
 
+
 def crossover(parent1, parent2):
     return [(a + b) / 2 for a, b in zip(parent1, parent2)]
+
 
 def mutate(chromosome, mutation_rate=0.1):
     return [
         gene + random.uniform(-1, 1) if random.random() < mutation_rate else gene
         for gene in chromosome
     ]
+
 
 def train_genetic_algorithm(iterations=300, population_size=12, generations=10):
     population = init_population(population_size, 4)
@@ -896,6 +941,7 @@ def train_genetic_algorithm(iterations=300, population_size=12, generations=10):
             new_population.append(child)
         population = new_population
     return best_chromosome
+
 
 def run_tetris_simulation(chromosome, iterations=300):
     board = get_blank_board()
@@ -938,6 +984,7 @@ def run_tetris_simulation(chromosome, iterations=300):
         if not is_valid_position(board, current_piece):
             break
     return score
+
 
 def final_run(best_chromosome):
     score = run_tetris_simulation(best_chromosome, iterations=600)
