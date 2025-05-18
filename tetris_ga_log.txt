@@ -1,3 +1,0 @@
-Starting GA: Seed=42, Pop_Size=12, Generations=10, Plays_per_Eval=300
-Chromosome factor order: lines_cleared, sum_height, holes_created, bumpiness, contact_points, lookahead_score_weight
-

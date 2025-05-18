@@ -1019,6 +1019,9 @@ def train_genetic_algorithm(iterations=300, population_size=12, generations=10):
             child = mutate(crossover(p1, p2))
             new_population.append(child)
         population = new_population
+    with open('best_chromosome.txt', 'w') as file:
+        file.write(f"Best Chromosome: {best_chromosome}\n")
+        file.write(f"Best Score: {best_score}\n")
     return best_chromosome
 
 
