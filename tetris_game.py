@@ -196,20 +196,74 @@ def menu_screen():
 # MAIN GAME
 ##############################################################################
 def main():
-    global FPSCLOCK, DISPLAYSURF, BASICFONT, BIGFONT
-    menu_screen()  # Show menu before starting
+    global FPSCLOCK, DISPLAYSURF, BASICFONT, BIGFONT, BGCOLOR, TEXTCOLOR
     pygame.init()
-    FPSCLOCK    = pygame.time.Clock()
-    DISPLAYSURF = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT))
-    BASICFONT   = pygame.font.Font('freesansbold.ttf', 18)
-    BIGFONT     = pygame.font.Font('freesansbold.ttf', 100)
-    pygame.display.set_caption('Tetris AI')
-    if MANUAL_GAME:
-        run_game()
-    else:
-        best_chrom = train_genetic_algorithm()
-        run_ai_game(best_chrom)
 
+    FPSCLOCK = pygame.time.Clock()
+    DISPLAYSURF = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT))
+    BASICFONT = pygame.font.Font('freesansbold.ttf', 18)
+    BIGFONT = pygame.font.Font('freesansbold.ttf', 100)
+    pygame.display.set_caption('Tetris AI')
+
+    # Default theme
+    BGCOLOR = BLACK
+    TEXTCOLOR = WHITE
+
+    # Show the menu
+    while True:
+        DISPLAYSURF.fill(BGCOLOR)
+        draw_menu()
+        pygame.display.update()
+
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                terminate()
+            elif event.type == MOUSEBUTTONUP:
+                mouse_x, mouse_y = event.pos
+                if ai_button.collidepoint(mouse_x, mouse_y):
+                    run_ai_game(train_genetic_algorithm())
+                elif manual_button.collidepoint(mouse_x, mouse_y):
+                    run_game()
+                elif dark_theme_button.collidepoint(mouse_x, mouse_y):
+                    BGCOLOR = BLACK
+                    TEXTCOLOR = WHITE
+                elif white_theme_button.collidepoint(mouse_x, mouse_y):
+                    BGCOLOR = WHITE
+                    TEXTCOLOR = BLACK
+def draw_menu():
+    global ai_button, manual_button, dark_theme_button, white_theme_button
+
+    # Draw title
+    title_surf, title_rect = make_text_objs('Tetris AI', BIGFONT, TEXTCOLOR)
+    title_rect.center = (WINDOWWIDTH // 2, WINDOWHEIGHT // 4)
+    DISPLAYSURF.blit(title_surf, title_rect)
+
+    # Draw buttons
+    ai_button = pygame.Rect(WINDOWWIDTH // 4, WINDOWHEIGHT // 2, 150, 50)
+    manual_button = pygame.Rect(WINDOWWIDTH // 2 + 50, WINDOWHEIGHT // 2, 150, 50)
+    dark_theme_button = pygame.Rect(WINDOWWIDTH // 4, WINDOWHEIGHT // 2 + 100, 150, 50)
+    white_theme_button = pygame.Rect(WINDOWWIDTH // 2 + 50, WINDOWHEIGHT // 2 + 100, 150, 50)
+
+    pygame.draw.rect(DISPLAYSURF, GRAY, ai_button)
+    pygame.draw.rect(DISPLAYSURF, GRAY, manual_button)
+    pygame.draw.rect(DISPLAYSURF, GRAY, dark_theme_button)
+    pygame.draw.rect(DISPLAYSURF, GRAY, white_theme_button)
+
+    ai_text, ai_rect = make_text_objs('AI Mode', BASICFONT, TEXTCOLOR)
+    ai_rect.center = ai_button.center
+    DISPLAYSURF.blit(ai_text, ai_rect)
+
+    manual_text, manual_rect = make_text_objs('Manual Mode', BASICFONT, TEXTCOLOR)
+    manual_rect.center = manual_button.center
+    DISPLAYSURF.blit(manual_text, manual_rect)
+
+    dark_text, dark_rect = make_text_objs('Dark Theme', BASICFONT, TEXTCOLOR)
+    dark_rect.center = dark_theme_button.center
+    DISPLAYSURF.blit(dark_text, dark_rect)
+
+    white_text, white_rect = make_text_objs('White Theme', BASICFONT, TEXTCOLOR)
+    white_rect.center = white_theme_button.center
+    DISPLAYSURF.blit(white_text, white_rect)
 
 def run_ai_game(best_chromosome):
     board = get_blank_board()
@@ -229,6 +283,7 @@ def run_ai_game(best_chromosome):
             next_piece = get_new_piece()
             score += 1
             if not is_valid_position(board, falling_piece):
+                show_game_over_screen()
                 return
 
         check_quit()
@@ -269,7 +324,7 @@ def run_ai_game(best_chromosome):
             draw_next_piece(next_piece)
             draw_piece(falling_piece)
             pygame.display.update()
-            pygame.time.wait(30)  # Adjust the delay (ms) for desired speed
+            pygame.time.wait(60)  # Adjust the delay (ms) for desired speed
 
         add_to_board(board, falling_piece)
         lines_cleared = remove_complete_lines(board)
@@ -297,7 +352,29 @@ def run_ai_game(best_chromosome):
         if falling_piece != None:
             draw_piece(falling_piece)
 
+def show_game_over_screen():
+    """Display the Game Over screen."""
+    DISPLAYSURF.fill(BGCOLOR)
 
+    # Draw "Game Over" text
+    game_over_surf, game_over_rect = make_text_objs('Game Over', BIGFONT, TEXTCOLOR)
+    game_over_rect.center = (WINDOWWIDTH // 2, WINDOWHEIGHT // 2 - 50)
+    DISPLAYSURF.blit(game_over_surf, game_over_rect)
+
+    # Draw "Press ESC to Quit" text
+    quit_surf, quit_rect = make_text_objs('Press ESC to Quit', BASICFONT, TEXTCOLOR)
+    quit_rect.center = (WINDOWWIDTH // 2, WINDOWHEIGHT // 2 + 50)
+    DISPLAYSURF.blit(quit_surf, quit_rect)
+
+    pygame.display.update()
+
+    # Wait for the player to quit
+    while True:
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                terminate()
+            elif event.type == KEYUP and event.key == K_ESCAPE:
+                terminate()
 def run_game():
     # Setup variables
     board              = get_blank_board()
@@ -327,6 +404,7 @@ def run_game():
             if (not is_valid_position(board, falling_piece)):
                 # GAME-OVER
                 # Can't fit a new piece on the board, so game over.
+                show_game_over_screen()
                 return
 
         # Check for quit
@@ -460,6 +538,7 @@ def run_game():
 
         pygame.display.update()
         FPSCLOCK.tick(FPS)
+        pygame.time.wait(60)
 
 
 ##############################################################################
