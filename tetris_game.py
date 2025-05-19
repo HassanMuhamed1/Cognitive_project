@@ -846,6 +846,7 @@ def calc_move_info(board, piece, x, r, total_holes_bef, total_blocking_bloks_bef
     total_blocking_block = 0
     total_holes          = 0
     max_height           = 0
+    bumpiness = calculate_bumpiness(new_board)
 
     for x2 in range(0, BOARDWIDTH):
         b = calc_heuristics(new_board, x2)
@@ -856,7 +857,7 @@ def calc_move_info(board, piece, x, r, total_holes_bef, total_blocking_bloks_bef
     new_holes           = total_holes - total_holes_bef
     new_blocking_blocks = total_blocking_block - total_blocking_bloks_bef
 
-    return [True, max_height, num_removed_lines, new_holes, new_blocking_blocks, piece_sides, floor_sides, wall_sides]
+    return [True, max_height, num_removed_lines, new_holes, bumpiness, new_blocking_blocks, piece_sides, floor_sides, wall_sides]
 
 def calc_initial_move_info(board):
     total_holes          = 0
@@ -946,19 +947,15 @@ def calc_sides_in_contact(board, piece):
 ##############################################################
 
 def rate_move(board, piece, chromosomes):
-    while is_valid_position(board, piece, adj_Y=1):
-        piece['y'] += 1
-    temp_board = [col[:] for col in board]
-    add_to_board(temp_board, piece)
-    lines_cleared = remove_complete_lines([col[:] for col in temp_board])
-    aggregate_height = sum(column_height(temp_board, x) for x in range(BOARDWIDTH))
-    holes = count_holes(temp_board)
-    bumpiness = calculate_bumpiness(temp_board)
+    move_info = calc_move_info(board, piece, piece['x'], piece['rotation'], *calc_initial_move_info(board))
+    if not move_info[0]:
+        return -1
     score = (
-        chromosomes[0] * lines_cleared +
-        chromosomes[1] * aggregate_height +
-        chromosomes[2] * holes +
-        chromosomes[3] * bumpiness
+        chromosomes[0] * move_info[2] +
+        chromosomes[1] * move_info[1] +
+        chromosomes[2] * move_info[3] +
+        chromosomes[3] * move_info[4] +
+        chromosomes[4] * move_info[5]
     )
     return score
 
@@ -967,6 +964,7 @@ def column_height(board, x):
         if board[x][y] != BLANK:
             return BOARDHEIGHT - y
     return 0
+
 
 def count_holes(board):
     holes = 0
@@ -1001,7 +999,7 @@ def mutate(chromosome, mutation_rate=0.1):
 
 
 def train_genetic_algorithm(iterations=300, population_size=12, generations=10):
-    population = init_population(population_size, 4)
+    population = init_population(population_size, 5)
     best_chromosome = None
     best_score = -1
     for gen in range(generations):
@@ -1012,7 +1010,7 @@ def train_genetic_algorithm(iterations=300, population_size=12, generations=10):
         scores.sort(reverse=True, key=lambda x: x[0])
         print(f"Generation {gen}: Best Score = {scores[0][0]}")
         best_score, best_chromosome = scores[0]
-        top = [chrom for _, chrom in scores[:4]]
+        top = [chrom for _, chrom in scores[:5]]
         new_population = top[:]
         while len(new_population) < population_size:
             p1, p2 = random.sample(top, 2)
