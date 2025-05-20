@@ -7,7 +7,7 @@ import os
 ##############################################################################
 
 # Board config
-FPS          = 25
+FPS          = 35
 WINDOWWIDTH  = 650
 WINDOWHEIGHT = 690
 BOXSIZE      = 25
@@ -34,6 +34,9 @@ BLUE        = (  0,   0, 155)
 LIGHTBLUE   = ( 20,  20, 175)
 YELLOW      = (155, 155,   0)
 LIGHTYELLOW = (175, 175,  20)
+PURPLE      = (128,   0, 128)
+ORANGE      = (255, 165,   0)
+LIGHTGRAY   = (211, 211, 211)
 
 BORDERCOLOR     = BLUE
 BGCOLOR         = BLACK
@@ -175,7 +178,7 @@ def menu_screen():
         screen.fill(BGCOLOR)
         title = font.render("Tetris Menu", True, WHITE)
         ai_text = font.render("Press A for AI Play", True, LIGHTBLUE)
-        manual_text = font.render("Press M for Manual Play", True, LIGHTGREEN)
+        manual_text = font.render("Press M for Menu Play", True, LIGHTGREEN)
         screen.blit(title, (WINDOWWIDTH//2 - title.get_width()//2, 200))
         screen.blit(ai_text, (WINDOWWIDTH//2 - ai_text.get_width()//2, 300))
         screen.blit(manual_text, (WINDOWWIDTH//2 - manual_text.get_width()//2, 350))
@@ -196,18 +199,19 @@ def menu_screen():
 # MAIN GAME
 ##############################################################################
 def main():
-    global FPSCLOCK, DISPLAYSURF, BASICFONT, BIGFONT, BGCOLOR, TEXTCOLOR
+    global FPSCLOCK, DISPLAYSURF, BASICFONT, BIGFONT, BGCOLOR, TEXTCOLOR, BUTTONCOLOR
     pygame.init()
 
     FPSCLOCK = pygame.time.Clock()
     DISPLAYSURF = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT))
     BASICFONT = pygame.font.Font('freesansbold.ttf', 18)
     BIGFONT = pygame.font.Font('freesansbold.ttf', 100)
-    pygame.display.set_caption('Tetris AI')
+    pygame.display.set_caption('Tetris Game')
 
     # Default theme
     BGCOLOR = BLACK
     TEXTCOLOR = WHITE
+    BUTTONCOLOR = GRAY
 
     # Show the menu
     while True:
@@ -227,43 +231,61 @@ def main():
                 elif dark_theme_button.collidepoint(mouse_x, mouse_y):
                     BGCOLOR = BLACK
                     TEXTCOLOR = WHITE
+                    BUTTONCOLOR = GRAY
                 elif white_theme_button.collidepoint(mouse_x, mouse_y):
                     BGCOLOR = WHITE
                     TEXTCOLOR = BLACK
+                    BUTTONCOLOR = LIGHTGRAY
+
+def draw_button(button_rect, text, mouse_x, mouse_y):
+    # Check if the mouse is hovering over the button
+    is_hovered = button_rect.collidepoint(mouse_x, mouse_y)
+    button_color = LIGHTGRAY if is_hovered else GRAY
+    text_color = BLACK if is_hovered else WHITE
+
+    # Draw the button with rounded corners
+    pygame.draw.rect(DISPLAYSURF, button_color, button_rect, border_radius=10)
+
+    # Draw the button text
+    button_text, button_text_rect = make_text_objs(text, BASICFONT, text_color)
+    button_text_rect.center = button_rect.center
+    DISPLAYSURF.blit(button_text, button_text_rect)
+
 def draw_menu():
     global ai_button, manual_button, dark_theme_button, white_theme_button
 
-    # Draw title
-    title_surf, title_rect = make_text_objs('Tetris AI', BIGFONT, TEXTCOLOR)
-    title_rect.center = (WINDOWWIDTH // 2, WINDOWHEIGHT // 4)
-    DISPLAYSURF.blit(title_surf, title_rect)
+    # Draw title with colored characters
+    title = "TETRIS"
+    colors = [RED, ORANGE, YELLOW, GREEN, BLUE, PURPLE]
+    title_font = pygame.font.Font('freesansbold.ttf', 80)  # Larger font for the title
+    title_width = sum(title_font.size(char)[0] for char in title)  # Calculate total width of the title
+    x_offset = (WINDOWWIDTH - title_width) // 2  # Center the title horizontally
 
-    # Draw buttons
-    ai_button = pygame.Rect(WINDOWWIDTH // 4, WINDOWHEIGHT // 2, 150, 50)
-    manual_button = pygame.Rect(WINDOWWIDTH // 2 + 50, WINDOWHEIGHT // 2, 150, 50)
-    dark_theme_button = pygame.Rect(WINDOWWIDTH // 4, WINDOWHEIGHT // 2 + 100, 150, 50)
-    white_theme_button = pygame.Rect(WINDOWWIDTH // 2 + 50, WINDOWHEIGHT // 2 + 100, 150, 50)
+    for i, char in enumerate(title):
+        char_surf, char_rect = make_text_objs(char, title_font, colors[i])
+        char_rect.topleft = (x_offset, WINDOWHEIGHT // 4)
+        DISPLAYSURF.blit(char_surf, char_rect)
+        x_offset += char_surf.get_width()  # Move to the next character's position
 
-    pygame.draw.rect(DISPLAYSURF, GRAY, ai_button)
-    pygame.draw.rect(DISPLAYSURF, GRAY, manual_button)
-    pygame.draw.rect(DISPLAYSURF, GRAY, dark_theme_button)
-    pygame.draw.rect(DISPLAYSURF, GRAY, white_theme_button)
+    # Button dimensions and positions
+    button_width = 200
+    button_height = 50
+    button_spacing = 20
+    button_y_start = WINDOWHEIGHT // 2
 
-    ai_text, ai_rect = make_text_objs('AI Mode', BASICFONT, TEXTCOLOR)
-    ai_rect.center = ai_button.center
-    DISPLAYSURF.blit(ai_text, ai_rect)
+    ai_button = pygame.Rect((WINDOWWIDTH // 2 - button_width - button_spacing // 2, button_y_start), (button_width, button_height))
+    manual_button = pygame.Rect((WINDOWWIDTH // 2 + button_spacing // 2, button_y_start), (button_width, button_height))
+    dark_theme_button = pygame.Rect((WINDOWWIDTH // 2 - button_width - button_spacing // 2, button_y_start + button_height + button_spacing), (button_width, button_height))
+    white_theme_button = pygame.Rect((WINDOWWIDTH // 2 + button_spacing // 2, button_y_start + button_height + button_spacing), (button_width, button_height))
 
-    manual_text, manual_rect = make_text_objs('Manual Mode', BASICFONT, TEXTCOLOR)
-    manual_rect.center = manual_button.center
-    DISPLAYSURF.blit(manual_text, manual_rect)
+    # Get mouse position for hover effect
+    mouse_x, mouse_y = pygame.mouse.get_pos()
 
-    dark_text, dark_rect = make_text_objs('Dark Theme', BASICFONT, TEXTCOLOR)
-    dark_rect.center = dark_theme_button.center
-    DISPLAYSURF.blit(dark_text, dark_rect)
-
-    white_text, white_rect = make_text_objs('White Theme', BASICFONT, TEXTCOLOR)
-    white_rect.center = white_theme_button.center
-    DISPLAYSURF.blit(white_text, white_rect)
+    # Draw buttons with hover effects
+    draw_button(ai_button, "AI Mode", mouse_x, mouse_y)
+    draw_button(manual_button, "Manual Mode", mouse_x, mouse_y)
+    draw_button(dark_theme_button, "Dark Theme", mouse_x, mouse_y)
+    draw_button(white_theme_button, "White Theme", mouse_x, mouse_y)
 
 def run_ai_game(best_chromosome):
     board = get_blank_board()
@@ -361,20 +383,23 @@ def show_game_over_screen():
     game_over_rect.center = (WINDOWWIDTH // 2, WINDOWHEIGHT // 2 - 50)
     DISPLAYSURF.blit(game_over_surf, game_over_rect)
 
-    # Draw "Press ESC to Quit" text
-    quit_surf, quit_rect = make_text_objs('Press ESC to Quit', BASICFONT, TEXTCOLOR)
+    # Draw "Press ESC to Quit or M to Menu" text
+    quit_surf, quit_rect = make_text_objs('Press ESC to Quit or M to Menu', BASICFONT, TEXTCOLOR)
     quit_rect.center = (WINDOWWIDTH // 2, WINDOWHEIGHT // 2 + 50)
     DISPLAYSURF.blit(quit_surf, quit_rect)
 
     pygame.display.update()
 
-    # Wait for the player to quit
+    # Wait for the player to quit or return to menu
     while True:
         for event in pygame.event.get():
             if event.type == QUIT:
                 terminate()
-            elif event.type == KEYUP and event.key == K_ESCAPE:
-                terminate()
+            elif event.type == KEYUP:
+                if event.key == K_ESCAPE:
+                    terminate()
+                elif event.key == K_m:
+                    return  # Return to menudef run_game():
 def run_game():
     # Setup variables
     board              = get_blank_board()
@@ -1064,11 +1089,6 @@ def run_tetris_simulation(chromosome, iterations=300):
         if not is_valid_position(board, current_piece):
             break
     return score
-
-
-def final_run(best_chromosome):
-    score = run_tetris_simulation(best_chromosome, iterations=600)
-    print(f"Final run score with optimal chromosome: {score}")
 
 
 if __name__ == '__main__':
