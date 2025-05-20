@@ -48,6 +48,8 @@ LIGHTCOLORS     = (LIGHTBLUE, LIGHTGREEN, LIGHTRED, LIGHTYELLOW)
 # Each color must have light color
 assert len(COLORS) == len(LIGHTCOLORS)
 
+random.seed(42)
+
 # Piece Templates
 # The TEMPLATEWIDTH and TEMPLATEHEIGHT constants simply set how large each row
 # and column for each shape’s rotation should be
@@ -237,6 +239,7 @@ def main():
                     TEXTCOLOR = BLACK
                     BUTTONCOLOR = LIGHTGRAY
 
+
 def draw_button(button_rect, text, mouse_x, mouse_y):
     # Check if the mouse is hovering over the button
     is_hovered = button_rect.collidepoint(mouse_x, mouse_y)
@@ -250,6 +253,7 @@ def draw_button(button_rect, text, mouse_x, mouse_y):
     button_text, button_text_rect = make_text_objs(text, BASICFONT, text_color)
     button_text_rect.center = button_rect.center
     DISPLAYSURF.blit(button_text, button_text_rect)
+
 
 def draw_menu():
     global ai_button, manual_button, dark_theme_button, white_theme_button
@@ -286,6 +290,7 @@ def draw_menu():
     draw_button(manual_button, "Manual Mode", mouse_x, mouse_y)
     draw_button(dark_theme_button, "Dark Theme", mouse_x, mouse_y)
     draw_button(white_theme_button, "White Theme", mouse_x, mouse_y)
+
 
 def run_ai_game(best_chromosome):
     board = get_blank_board()
@@ -400,6 +405,8 @@ def show_game_over_screen():
                     terminate()
                 elif event.key == K_m:
                     return  # Return to menudef run_game():
+
+
 def run_game():
     # Setup variables
     board              = get_blank_board()
@@ -976,11 +983,11 @@ def rate_move(board, piece, chromosomes):
     if not move_info[0]:
         return -1
     score = (
-        chromosomes[0] * move_info[2] +
-        chromosomes[1] * move_info[1] +
-        chromosomes[2] * move_info[3] +
-        chromosomes[3] * move_info[4] +
-        chromosomes[4] * move_info[5]
+        chromosomes[0] * move_info[2] +  # lines cleared
+        chromosomes[1] * move_info[1] +  # max height
+        chromosomes[2] * move_info[3] +  # new holes
+        chromosomes[3] * move_info[4] +  # bumpiness
+        chromosomes[4] * move_info[5]    # new blocking blocks
     )
     return score
 
@@ -1023,7 +1030,7 @@ def mutate(chromosome, mutation_rate=0.1):
     ]
 
 
-def train_genetic_algorithm(iterations=300, population_size=12, generations=10):
+def train_genetic_algorithm(iterations=500, population_size=15, generations=10, eval_runs=5):
     population = init_population(population_size, 5)
     best_chromosome = None
     best_score = -1
@@ -1048,7 +1055,7 @@ def train_genetic_algorithm(iterations=300, population_size=12, generations=10):
     return best_chromosome
 
 
-def run_tetris_simulation(chromosome, iterations=300):
+def run_tetris_simulation(chromosome, iterations=500):
     board = get_blank_board()
     score = 0
     pieces_played = 0
